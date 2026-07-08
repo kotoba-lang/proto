@@ -35,3 +35,4 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-jdk${{ matrix.java }}-clj-
       - run: clojure -M:test
+      - run: clojure -M:lint
