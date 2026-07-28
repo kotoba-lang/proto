@@ -36,3 +36,18 @@ jobs:
             ${{ runner.os }}-jdk${{ matrix.java }}-clj-
       - run: clojure -M:test
       - run: clojure -M:lint
+
+  cljs:
+    # Not redundant with the JVM job. `proto.wire` has no reader conditionals,
+    # but varints are exactly where the two runtimes disagree: JavaScript's
+    # bitwise operators truncate to int32, and a double stops representing
+    # integers exactly past 2^53. A JVM long exercises neither path.
+    name: nbb (ClojureScript)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install -g nbb
+      - run: nbb --classpath src:test scripts/verify-cljs.cljs
