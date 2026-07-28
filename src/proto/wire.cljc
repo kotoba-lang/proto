@@ -67,6 +67,12 @@
 (defn- fail [msg data]
   (throw (ex-info (str "proto.wire: " msg) data)))
 
+(def ^:private max-exact
+  "The largest integer a JavaScript double represents exactly, 2^53-1. Values
+  past it are refused rather than rounded: a varint is usually a length or an
+  identifier, and a silently wrong one is worse than a rejected message."
+  9007199254740991)
+
 ;; ── varints ──────────────────────────────────────────────────────────────────
 
 (defn- byte-at [v i]
@@ -89,21 +95,37 @@
   (loop [i offset, shift 1, acc 0, n 0]
     (when (>= i (count v))
       (fail "truncated varint" {:offset offset}))
-    (when (> n 9)
-      (fail "varint longer than 10 bytes" {:offset offset}))
     (let [b    (byte-at v i)
           acc' (+ acc (* (bit-and b 0x7f) shift))]
-      (when (> acc' 9007199254740991)
+      (when (> acc' max-exact)
         (fail "varint exceeds the exactly-representable integer range"
               {:offset offset}))
-      (if (zero? (bit-and b 0x80))
+      (cond
+        (zero? (bit-and b 0x80))
         {:value acc' :length (inc (- i offset))}
-        (recur (inc i) (* shift 128) acc' (inc n))))))
+
+        (>= n 9)
+        (fail "varint longer than 10 bytes" {:offset offset})
+
+        :else
+        ;; `shift` stops growing once it is past the largest value `acc` may
+        ;; hold. Left to multiply freely it reaches 2^63 on the tenth byte and
+        ;; overflows a JVM long — which threw an arithmetic exception there
+        ;; while ClojureScript, whose doubles do not overflow, sailed past and
+        ;; reported the intended error instead. Ten 0x80 bytes is a legal thing
+        ;; for a hostile peer to send, so the two runtimes disagreeing about it
+        ;; is a real difference in behaviour, not a curiosity. Capping is safe:
+        ;; any nonzero payload byte at that position makes `acc'` exceed
+        ;; `max-exact` and fail on the next pass regardless of the exact shift.
+        (recur (inc i)
+               (if (> shift max-exact) shift (* shift 128))
+               acc'
+               (inc n))))))
 
 (defn write-varint
   "Canonical base-128 varint encoding of a non-negative integer."
   [n]
-  (when (or (neg? n) (> n 9007199254740991))
+  (when (or (neg? n) (> n max-exact))
     (fail "varint out of range" {:n n}))
   (loop [n n, out []]
     (if (< n 128)

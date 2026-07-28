@@ -47,7 +47,25 @@
       "negative values are not varints (sint uses zigzag)")
   (is (thrown? #?(:clj Exception :cljs js/Error)
                (w/read-varint (b "ffffffffffffffffff7f") 0))
-      "a value past the exactly-representable range is refused, not rounded"))
+      "a value past the exactly-representable range is refused, not rounded")
+
+  (testing "a varint that never terminates"
+    ;; All-zero payload, so the accumulator never grows and only the length
+    ;; guard can stop it. This is the case where the two runtimes used to
+    ;; disagree: the shift reached 2^63 on the tenth byte, which threw
+    ;; `long overflow` on the JVM and nothing at all on ClojureScript. A
+    ;; hostile peer can send exactly these bytes.
+    (doseq [n [10 11 12 20]]
+      (is (thrown-with-msg?
+           #?(:clj Exception :cljs js/Error) #"longer than 10 bytes"
+           (w/read-varint (vec (repeat n 0x80)) 0))
+          (str n " continuation bytes"))))
+
+  (testing "ten bytes is the limit, and a legal ten-byte varint still reads"
+    ;; nine continuation bytes then a terminator: non-canonical, but legal,
+    ;; and it must not be caught by the length guard
+    (is (= 0 (:value (w/read-varint (b "80808080808080808000") 0))))
+    (is (= 10 (:length (w/read-varint (b "80808080808080808000") 0))))))
 
 (deftest zigzag-spec-vectors
   (is (= [0 1 2 3 4294967294 4294967295]
