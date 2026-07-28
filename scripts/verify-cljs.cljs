@@ -1,0 +1,23 @@
+#!/usr/bin/env nbb
+;; Run the wire-codec suite on the ClojureScript side.
+;;
+;; `proto.wire` has no reader conditionals, so it is tempting to treat a green
+;; JVM run as covering both runtimes. It does not. Varints are exactly where
+;; the two disagree: JavaScript's bitwise operators truncate to int32, and a
+;; double stops representing integers exactly past 2^53. The codec navigates
+;; both — it accumulates with arithmetic rather than shifts, and refuses values
+;; it cannot hold — and neither behaviour is exercised by a JVM long.
+;;
+;;   nbb --classpath src:test scripts/verify-cljs.cljs
+(ns verify-cljs
+  (:require [clojure.test :as t]
+            [proto.wire-test]))
+
+(defmethod t/report [:cljs.test/default :end-run-tests] [m]
+  (println)
+  (if (t/successful? m)
+    (println "all checks passed on the ClojureScript path")
+    (do (println "FAILED on the ClojureScript path")
+        (js/process.exit 1))))
+
+(t/run-tests 'proto.wire-test)
