@@ -291,6 +291,52 @@
                                       (char (+ 0xdc00 (mod c 1024)))))
                                (char cp))))))))))
 
+(defn utf8->bytes
+  "Encode a string as UTF-8. Pure — no TextEncoder, no `getBytes` — so the
+  result is identical on every runtime.
+
+  The mirror of `bytes->utf8`, and here rather than in a caller for the same
+  reason that decoder gives: these bytes usually end up inside something that
+  gets signed, and two encoders that disagree about an edge case produce two
+  different signatures over what looks like the same string.
+
+  Unpaired surrogates are refused rather than replaced. A lone high surrogate
+  has no UTF-8 encoding at all, and the usual substitution — U+FFFD — silently
+  changes a value a signature would cover."
+  [s]
+  (let [n (count s)]
+    (loop [i 0, out []]
+      (if (>= i n)
+        out
+        (let [c #?(:clj (int (.charAt ^String s i)) :cljs (.charCodeAt s i))
+              [cp width]
+              (cond
+                (<= 0xd800 c 0xdbff)
+                (let [lo (when (< (inc i) n)
+                           #?(:clj (int (.charAt ^String s (inc i)))
+                              :cljs (.charCodeAt s (inc i))))]
+                  (if (and lo (<= 0xdc00 lo 0xdfff))
+                    [(+ 0x10000 (* 1024 (- c 0xd800)) (- lo 0xdc00)) 2]
+                    (fail "unpaired high surrogate" {:index i :code c})))
+
+                (<= 0xdc00 c 0xdfff)
+                (fail "unpaired low surrogate" {:index i :code c})
+
+                :else [c 1])]
+          (recur (+ i width)
+                 (into out
+                       (cond
+                         (< cp 0x80)    [cp]
+                         (< cp 0x800)   [(bit-or 0xc0 (bit-shift-right cp 6))
+                                         (bit-or 0x80 (bit-and cp 0x3f))]
+                         (< cp 0x10000) [(bit-or 0xe0 (bit-shift-right cp 12))
+                                         (bit-or 0x80 (bit-and (bit-shift-right cp 6) 0x3f))
+                                         (bit-or 0x80 (bit-and cp 0x3f))]
+                         :else          [(bit-or 0xf0 (bit-shift-right cp 18))
+                                         (bit-or 0x80 (bit-and (bit-shift-right cp 12) 0x3f))
+                                         (bit-or 0x80 (bit-and (bit-shift-right cp 6) 0x3f))
+                                         (bit-or 0x80 (bit-and cp 0x3f))]))))))))
+
 ;; ── construction ─────────────────────────────────────────────────────────────
 
 (defn varint-field
@@ -308,3 +354,11 @@
   "A `:length-delimited` field holding an encoded nested message."
   [number msg]
   (bytes-field number (encode msg)))
+
+(defn string-field
+  "A `string` field. Protobuf encodes strings as length-delimited UTF-8, so
+  this is `bytes-field` over `utf8->bytes` — named because a caller reaching
+  for `bytes-field` with a string is a caller who has to remember which
+  encoder, every time."
+  [number s]
+  (bytes-field number (utf8->bytes s)))

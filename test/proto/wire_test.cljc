@@ -200,3 +200,34 @@
     (is (thrown? #?(:clj Exception :cljs js/Error) (w/bytes->utf8 (b "ff"))))
     (is (thrown? #?(:clj Exception :cljs js/Error) (w/bytes->utf8 (b "c3"))))
     (is (thrown? #?(:clj Exception :cljs js/Error) (w/bytes->utf8 (b "c341"))))))
+
+(deftest utf8-encoding
+  (is (= (b "74657374696e67") (w/utf8->bytes "testing")))
+  (is (= [] (w/utf8->bytes "")))
+  (testing "every width"
+    (is (= (b "c3a9") (w/utf8->bytes "\u00e9")))
+    (is (= (b "e38182") (w/utf8->bytes "\u3042")))
+    (is (= (b "f09f8c8d") (w/utf8->bytes "\ud83c\udf0d"))
+        "outside the BMP — a surrogate pair in, four bytes out"))
+  (testing "round trip across every width boundary"
+    ;; U+007F/U+0080 is one byte to two, U+07FF/U+0800 two to three,
+    ;; U+FFFF/U+10000 three to four — the three places an encoder gets wrong
+    (doseq [s ["" "a" "\u007f" "\u0080" "\u07ff" "\u0800" "\uffff"
+               "\ud800\udc00" "\udbff\udfff"
+               "storj" "\u30a8\u30e9\u30fc" "mixed \u65e5\u672c\u8a9e"]]
+      (is (= s (w/bytes->utf8 (w/utf8->bytes s))) (pr-str s))))
+  (testing "an unpaired surrogate has no encoding and is refused"
+    ;; U+FFFD would be the usual substitution, and it would change a value a
+    ;; signature covers
+    (is (thrown-with-msg? #?(:clj Exception :cljs js/Error) #"surrogate"
+                          (w/utf8->bytes (str (char 0xd83c)))))
+    (is (thrown-with-msg? #?(:clj Exception :cljs js/Error) #"surrogate"
+                          (w/utf8->bytes (str (char 0xdf0d)))))
+    (is (thrown-with-msg? #?(:clj Exception :cljs js/Error) #"surrogate"
+                          (w/utf8->bytes (str (char 0xd83c) "a"))))))
+
+(deftest string-fields-are-utf-8-length-delimited
+  (is (= {:field-number 1 :wire-type :length-delimited :value (b "73746f726a")}
+         (w/string-field 1 "storj")))
+  (is (= "\u30a8\u30e9\u30fc"
+         (w/bytes->utf8 (:value (w/string-field 3 "\u30a8\u30e9\u30fc"))))))
