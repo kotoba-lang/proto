@@ -9,7 +9,7 @@
 ;;
 ;; This is the WHOLE suite, not a subset: `proto.core-test` was `.clj` by
 ;; extension only — it requires nothing but `clojure.test`,
-;; `clojure.string` and `proto.core`, and runs unchanged here — so it is
+;; `kotoba.lang.text` and `proto.core`, and runs unchanged here — so it is
 ;; `.cljc` now and both runtimes report 13 tests / 89 assertions.
 ;;
 ;; Every deftest-bearing namespace is named BOTH in the require and in the
@@ -17,7 +17,7 @@
 ;; them, and a runner naming a subset prints the same `Ran N tests` shape as
 ;; one naming all of them.
 (ns run-tests
-  (:require [cljs.test :as t]
+  (:require [kotoba.lang.text] [cljs.test :as t]
             [proto.core-test]
             [proto.wire-test]))
 
