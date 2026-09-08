@@ -15,7 +15,7 @@
      [:service :Greeter rpc…]  ·  [:rpc :SayHello :Req :Reply]  ·  [:rpc :Chat [:stream :Msg] :Ack]
    Types/names are keywords or strings (a message ref like :Address → Address).
    Top level:  (proto {:package \"ex\" :syntax \"proto3\" :imports [\"google/...\"]} item…)"
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 (defn- id [x] (if (keyword? x) (name x) (str x)))
 (defn- rpc-arg [a] (if (vector? a) (str (id (first a)) " " (id (second a))) (id a)))  ;; [:stream :Msg] → stream Msg

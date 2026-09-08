@@ -3,7 +3,7 @@
    fields, enums, nested messages, oneof, services with (streaming) rpcs, and the proto3 file header.
    protoc compiles the same output for real in `bb gate`."
   (:require [clojure.test :refer [deftest is]]
-            [clojure.string :as str]
+            [kotoba.lang.text :as str]
             [proto.core :as p]))
 
 (deftest declarations
