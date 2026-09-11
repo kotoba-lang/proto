@@ -1,7 +1,7 @@
 (ns proto.core-test
   "Golden tests for kotoba.proto — the Protocol Buffers hiccup. They pin scalar/repeated/optional/map
    fields, enums, nested messages, oneof, services with (streaming) rpcs, and the proto3 file header.
-   protoc compiles the same output for real in `bb gate`."
+   protoc compiles the same output for real in `kbb -M:gate`."
   (:require [clojure.test :refer [deftest is]]
             [kotoba.lang.text :as str]
             [proto.core :as p]))
