@@ -1,4 +1,4 @@
-#!/usr/bin/env nbb
+#!/usr/bin/env kbb
 ;; Run the wire-codec suite on the ClojureScript side.
 ;;
 ;; `proto.wire` has no reader conditionals, so it is tempting to treat a green
@@ -8,7 +8,7 @@
 ;; both — it accumulates with arithmetic rather than shifts, and refuses values
 ;; it cannot hold — and neither behaviour is exercised by a JVM long.
 ;;
-;;   nbb --classpath src:test scripts/verify-cljs.cljk
+;;   kbb --backend sci --classpath src:test scripts/verify-cljs.cljk
 (ns verify-cljs
   (:require [clojure.test :as t]
             [proto.wire-test]))

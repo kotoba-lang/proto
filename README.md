@@ -52,9 +52,9 @@ desynchronise everything after it.
 ## Test
 
 ```sh
-clojure -M:test                                   # JVM
-nbb --classpath src:test scripts/verify-cljs.cljk # ClojureScript
-clojure -M:lint
+kbb -M:test                                   # JVM
+kbb --backend sci --classpath src:test scripts/verify-cljs.cljk # ClojureScript
+kbb -M:lint
 ```
 
 Both runtimes are run in CI. The ClojureScript job is not redundant: varints
