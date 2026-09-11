@@ -40,7 +40,7 @@ A decoder that discards fields it does not recognise, or that rewrites a
 varint into its own canonical form, produces different bytes and every
 signature fails with no indication why. So unknown fields survive, repeated
 fields keep their order, and a non-canonically encoded length prefix comes
-back out exactly as it went in. `test/proto/wire_test.cljc` asserts that with
+back out exactly as it went in. `test/proto/wire_test.cljk` asserts that with
 a field only `:raw` can carry — and the suite has been checked to fail when
 `:raw` is ignored.
 
@@ -53,7 +53,7 @@ desynchronise everything after it.
 
 ```sh
 clojure -M:test                                   # JVM
-nbb --classpath src:test scripts/verify-cljs.cljs # ClojureScript
+nbb --classpath src:test scripts/verify-cljs.cljk # ClojureScript
 clojure -M:lint
 ```
 

@@ -5,7 +5,7 @@
 ;; was the only runtime that ever ran them, so a defect in the ClojureScript
 ;; half of either was invisible here (ADR-2608190100).
 ;;
-;;   nbb --classpath "src:test:$(clojure -Spath -M:test)" run-tests.cljs
+;;   nbb --classpath "src:test:$(clojure -Spath -M:test)" run-tests.cljk
 ;;
 ;; This is the WHOLE suite, not a subset: `proto.core-test` was `.clj` by
 ;; extension only — it requires nothing but `clojure.test`,

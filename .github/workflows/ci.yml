@@ -50,4 +50,4 @@ jobs:
         with:
           node-version: '22'
       - run: npm install -g nbb
-      - run: nbb --classpath src:test scripts/verify-cljs.cljs
+      - run: nbb --classpath src:test scripts/verify-cljs.cljk
